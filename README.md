@@ -1,61 +1,51 @@
-# 📓 Дневник достижений
+# Diary App
 
-Это веб-приложение для учёта личных достижений и задач. Позволяет структурировать ежедневные победы, отслеживать прогресс по проектам, спорту, бытовым делам и другим активностям. Данные сохраняются в вашем браузере и не теряются после перезагрузки.
-
----
-
-## 🚀 Возможности
-
-- **Создание записей** – добавление новых карточек с таблицей для ввода данных.
-- **Редактирование ячеек** – клик по любой ячейке позволяет редактировать текст (кроме колонок с календарём и выпадающим списком).
-- **Выбор даты** – в колонке «Дата» при клике появляется календарь.
-- **Выбор вида деятельности** – выпадающий список с вариантами: проект, спорт, бытовые дела, документы.
-- **Динамические колонки**:
-  - При фильтре «проект» появляется колонка «Наименование проекта».
-  - При фильтре «спорт» появляется колонка «Вид спорта».
-  - Остальные колонки скрыты, чтобы не загромождать интерфейс.
-- **Управление строками** – под таблицей есть кнопки:
-  - **Добавить строку** – добавляет новую пустую строку.
-  - **Удалить строку** – удаляет последнюю строку (если она не единственная).
-  - **Очистить строку** – очищает содержимое последней строки, не удаляя её.
-- **Сохранение в localStorage** – все записи автоматически сохраняются в браузере.
-- **Сезонная смена цветов** – основной цвет интерфейса меняется в зависимости от времени года:
-  - Зима ❄️ – синий
-  - Весна 🌸 – розовый
-  - Лето ☀️ – зелёный
-  - Осень 🍂 – жёлтый
-- **Видеофон** – на заднем плане воспроизводится видео (можно заменить на своё).
-- **Адаптивный дизайн** – комфортно отображается на телефонах, планшетах и компьютерах.
+The **Diary App** is a simple yet powerful application that allows users to perform **CRUD (Create, Read, Update, Delete)** operations on diary entries. Built with modern web technologies, the app ensures that your entries are saved locally using **Local Storage**, making them accessible even after closing the browser. Additionally, the app supports **Markdown formatting** for diary entries, enabling users to create rich, visually appealing content.
 
 ---
 
-## 📁 Структура проекта
+## Features
 
-- `index.html` – основная страница приложения
-- `style.css` – все стили (с поддержкой CSS-переменных для цветовой темы)
-- `script.js` – вся логика (создание записей, фильтрация, работа с таблицами, сохранение)
-- `VID_20260619_020607.mp4` – видео для фона (можно заменить на своё)
-- `fallback.jpg` – запасное изображение, если видео не загрузится
+- **CRUD Operations**:
+  - **Create**: Add new diary entries effortlessly.
+  - **Read**: View all saved diary entries in a clean and organized manner.
+  - **Update**: Edit existing entries to update or refine your content.
+  - **Delete**: Remove entries you no longer need.
+
+- **Local Storage**:
+  - All diary entries are saved locally in the browser's **Local Storage**, ensuring data persistence across sessions.
+
+- **Markdown Support**:
+  - Integrated with the **Marked** library to parse and render Markdown, allowing users to format their entries with headings, lists, bold text, and more.
+
+- **Responsive Design**:
+  - A clean, intuitive, and responsive user interface designed with **HTML** and **CSS**, ensuring a seamless experience across devices.
 
 ---
 
-## 🛠 Как запустить
+## Technologies Used
 
-1. Скачайте все файлы в одну папку.
-2. Откройте файл `index.html` в любом браузере (Chrome, Firefox, Safari, Edge).
-3. Начните добавлять записи – всё работает локально, без интернета.
-
-> **Для использования на телефоне** – загрузите папку на бесплатный хостинг (GitHub Pages, Netlify) или используйте локальный сервер.
+- **HTML**: For structuring the app's layout.
+- **CSS**: For styling and ensuring a responsive design.
+- **JavaScript**: For dynamic functionality, DOM manipulation, and handling CRUD operations.
+- **Local Storage**: To save and retrieve user data on the client side.
+- **Marked**: A Markdown parsing and rendering library for enhanced text formatting.
 
 ---
 
-## 🔧 Настройка
+## How to Use
 
-### Изменение видеофона
-- Замените файл `VID_20260619_020607.mp4` на своё видео в формате MP4.
-- Или укажите другую ссылку в теге `<source>` в `index.html`.
+1. **Create a New Entry**:
+   - Click the "Add" button to create a new diary entry.
+   - Write your content using Markdown syntax for formatting.
 
-### Изменение списка видов деятельности
-- В файле `script.js` найдите массив `options` в функции `initActivityCells` и измените его:
-  ```javascript
-  const options = ['', 'проект', 'спорт', 'бытовые дела', 'документы'];
+2. **Edit an Entry**:
+   - Click the "Edit" button on any entry to modify its content.
+
+3. **Delete an Entry**:
+   - Click the "Delete" button to remove an entry permanently.
+
+4. **View Entries**:
+   - All saved entries are displayed in a readable format, with Markdown rendered for better visual appeal.
+
+---

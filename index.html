@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- ===== Видеофон ===== -->
+    <video class="video-bg" autoplay loop muted playsinline>
+        <!-- Замените на своё видео или используйте ссылку -->
+        <source src="VID_20260619_020607.mp4" type="video/mp4">
+        <!-- Запасное изображение, если видео не загрузится -->
+        <img src="fallback.jpg" alt="фон">
+    </video>
+
+    <div class="logo">
+        Dear Diary
+    </div>
+    <button class="add" id="add">
+        <i class="fas fa-plus"></i> Add Diary
+    </button>
+
+    <footer>
+        <div>
+            Made with <i class="fas fa-heart"></i> by Elvis chimuse
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.6/marked.min.js" integrity="sha512-rvRITpPeEKe4hV9M8XntuXX6nuohzqdR5O3W6nhjTLwkrx0ZgBQuaK4fv5DdOWzs2IaXsGt5h0+nyp9pEuoTXg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="script.js"></script>
+</body>
+</html>
