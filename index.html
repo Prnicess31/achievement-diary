@@ -1,35 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notes App</title>
+    <title>Дневник достижений</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="style.css" rel="stylesheet">
 </head>
 <body>
     <!-- ===== Видеофон ===== -->
     <video class="video-bg" autoplay loop muted playsinline>
-        <!-- Замените на своё видео или используйте ссылку -->
         <source src="VID_20260619_020607.mp4" type="video/mp4">
-        <!-- Запасное изображение, если видео не загрузится -->
         <img src="fallback.jpg" alt="фон">
     </video>
 
-    <div class="logo">
-        Dear Diary
-    </div>
-    <button class="add" id="add">
-        <i class="fas fa-plus"></i> Add Diary
-    </button>
-
-    <footer>
-        <div>
-            Made with <i class="fas fa-heart"></i> by Elvis chimuse
+    <!-- ===== ФОРМА ВХОДА ===== -->
+    <div id="login-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 1000; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+        <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-width: 400px; width: 90%; text-align: center;">
+            <h2 style="margin-top: 0; color: #2c3e50;">🔐 Дневник достижений</h2>
+            <p style="color: #7f8c8d; font-size: 0.9rem;">Введите пароль для доступа</p>
+            <input type="password" id="password-input" placeholder="Пароль" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; margin: 10px 0;">
+            <button id="login-btn" style="width: 100%; padding: 12px; background: #2ecc71; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer;">Войти</button>
+            <p id="login-error" style="color: red; font-size: 0.8rem; margin-top: 10px; display: none;">Неверный пароль. Попробуйте снова.</p>
+            <p style="font-size: 0.8rem; color: #95a5a6; margin-top: 20px;">При первом входе установите пароль</p>
         </div>
-    </footer>
+    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.6/marked.min.js" integrity="sha512-rvRITpPeEKe4hV9M8XntuXX6nuohzqdR5O3W6nhjTLwkrx0ZgBQuaK4fv5DdOWzs2IaXsGt5h0+nyp9pEuoTXg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- ===== ОСНОВНОЕ ПРИЛОЖЕНИЕ (скрыто до авторизации) ===== -->
+    <div id="app-content" style="display: none;">
+        <div class="logo">
+            Dear Diary
+        </div>
+        <button class="add" id="add">
+            <i class="fas fa-plus"></i> Add Diary
+        </button>
+        <footer>
+            <div>
+                Made with <i class="fas fa-heart"></i> by Elvis chimuse
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.6/marked.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
