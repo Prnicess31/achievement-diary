@@ -339,12 +339,12 @@ function initializeApp() {
                 <table border="1" cellpadding="5" style="border-collapse: collapse; width: 100%; font-size: 0.8rem;">
                     <tr>
                         <th contenteditable="true">Дата</th>
-                        <th contenteditable="true">Время потраченное</th>
-                        <th contenteditable="true">Вид деятельности</th>
-                        <th contenteditable="true" class="project-extra">Наименование проекта</th>
+                        <th contenteditable="true">Время</th>
+                        <th contenteditable="true">Вид</th>
+                        <th contenteditable="true" class="project-extra">Имя</th>
                         <th contenteditable="true" class="sport-extra">Вид спорта</th>
-                        <th contenteditable="true">Что сделано</th>
-                        <th contenteditable="true">Оценка результата</th>
+                        <th contenteditable="true">Работа</th>
+                        <th contenteditable="true">Оценка</th>
                     </tr>
                     <tr>
                         <td data-date="true"></td>
