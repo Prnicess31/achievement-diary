@@ -312,3 +312,6 @@ footer div i {
     object-fit: cover;
     z-index: -1;
 }
+.note .main {
+    overflow-x: auto; /* горизонтальная прокрутка */
+}
