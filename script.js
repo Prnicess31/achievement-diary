@@ -1,65 +1,68 @@
 // ============================================================
-//  РАБОТА С КЛЮЧАМИ (сохранение в localStorage)
+//  КОНФИГУРАЦИЯ ДЛЯ ЯНДЕКС.ДИСКА
 // ============================================================
-function getYCConfig() {
-    const bucket = localStorage.getItem('yc_bucket');
-    const accessKey = localStorage.getItem('yc_access_key');
-    const secretKey = localStorage.getItem('yc_secret_key');
-    if (bucket && accessKey && secretKey) {
-        return {
-            bucketName: bucket,
-            accessKeyId: accessKey,
-            secretAccessKey: secretKey,
-            endpoint: 'https://storage.yandexcloud.net'
-        };
+const ACCESS_TOKEN = 'ВАШ_ТОКЕН_ЯНДЕКС_ДИСКА'; // ВСТАВЬТЕ СЮДА ТОКЕН
+const FILE_PATH = 'diary-data.json';
+
+// ============================================================
+//  ФУНКЦИИ ДЛЯ РАБОТЫ С ЯНДЕКС.ДИСКОМ
+// ============================================================
+async function saveToDisk(data) {
+    try {
+        const response = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/upload?path=${FILE_PATH}&overwrite=true`, {
+            method: 'GET',
+            headers: { 'Authorization': `OAuth ${ACCESS_TOKEN}` }
+        });
+        const uploadData = await response.json();
+        if (!uploadData.href) throw new Error('Не удалось получить ссылку для загрузки');
+        
+        const uploadResponse = await fetch(uploadData.href, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!uploadResponse.ok) throw new Error('Ошибка загрузки на Диск');
+        console.log('✅ Данные сохранены на Яндекс.Диск');
+    } catch (error) {
+        console.error('❌ Ошибка сохранения:', error);
+        // Не показываем alert, чтобы не раздражать
     }
-    return null;
 }
 
-function saveYCConfig(bucket, accessKey, secretKey) {
-    localStorage.setItem('yc_bucket', bucket);
-    localStorage.setItem('yc_access_key', accessKey);
-    localStorage.setItem('yc_secret_key', secretKey);
-}
-
-// ===== Проверка наличия ключей =====
-const keyForm = document.getElementById('key-form-container');
-const loginContainer = document.getElementById('login-container');
-const appContent = document.getElementById('app-content');
-const saveKeysBtn = document.getElementById('save-keys-btn');
-const keyError = document.getElementById('key-error');
-
-if (getYCConfig()) {
-    keyForm.style.display = 'none';
-    loginContainer.style.display = 'flex';
-} else {
-    keyForm.style.display = 'flex';
-    loginContainer.style.display = 'none';
-    appContent.style.display = 'none';
-}
-
-saveKeysBtn.addEventListener('click', function() {
-    const bucket = document.getElementById('bucket-input').value.trim();
-    const accessKey = document.getElementById('access-key-input').value.trim();
-    const secretKey = document.getElementById('secret-key-input').value.trim();
-    if (!bucket || !accessKey || !secretKey) {
-        keyError.style.display = 'block';
-        return;
+async function loadFromDisk() {
+    try {
+        const response = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${FILE_PATH}`, {
+            method: 'GET',
+            headers: { 'Authorization': `OAuth ${ACCESS_TOKEN}` }
+        });
+        if (response.status === 404) {
+            console.log('ℹ️ Данных на Диске пока нет.');
+            return null;
+        }
+        if (!response.ok) throw new Error('Ошибка получения ссылки на загрузку');
+        const downloadData = await response.json();
+        const fileResponse = await fetch(downloadData.href);
+        if (!fileResponse.ok) throw new Error('Ошибка загрузки файла');
+        const data = await fileResponse.json();
+        console.log('✅ Данные загружены с Яндекс.Диска');
+        return data;
+    } catch (error) {
+        console.error('❌ Ошибка загрузки:', error);
+        return null;
     }
-    keyError.style.display = 'none';
-    saveYCConfig(bucket, accessKey, secretKey);
-    location.reload();
-});
+}
 
 // ============================================================
 //  БЛОК АВТОРИЗАЦИИ
 // ============================================================
 (function() {
-    const storedHash = localStorage.getItem('app_password_hash');
+    const loginContainer = document.getElementById('login-container');
+    const appContent = document.getElementById('app-content');
     const passwordInput = document.getElementById('password-input');
     const loginBtn = document.getElementById('login-btn');
     const errorMsg = document.getElementById('login-error');
 
+    const storedHash = localStorage.getItem('app_password_hash');
     if (!storedHash) {
         passwordInput.placeholder = 'Придумайте пароль';
         loginBtn.textContent = 'Установить пароль';
@@ -114,15 +117,9 @@ saveKeysBtn.addEventListener('click', function() {
 })();
 
 // ============================================================
-//  ОСНОВНОЙ КОД ПРИЛОЖЕНИЯ (ПОЛНАЯ ВЕРСИЯ)
+//  ОСНОВНОЙ КОД ПРИЛОЖЕНИЯ
 // ============================================================
 async function initializeApp() {
-    const config = getYCConfig();
-    if (!config) {
-        alert('Ошибка: ключи не найдены. Перезагрузите страницу и введите ключи.');
-        return;
-    }
-
     const addBtn = document.getElementById('add');
 
     // ===== Установка сезонной цветовой темы =====
@@ -355,69 +352,31 @@ async function initializeApp() {
         });
     }
 
-    // ===== Функции для работы с облаком =====
-    async function saveToCloud(data) {
-        try {
-            const response = await fetch(`${config.endpoint}/${config.bucketName}/diary-data.json`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `AWS ${config.accessKeyId}:${config.secretAccessKey}`,
-                    'Content-Type': 'application/json',
-                    'Host': `${config.bucketName}.storage.yandexcloud.net`
-                },
-                body: JSON.stringify(data)
-            });
-            if (!response.ok) throw new Error(`Ошибка сохранения: ${response.status}`);
-            console.log('✅ Данные сохранены в облако');
-        } catch (error) {
-            console.error('❌ Ошибка:', error);
-            alert('Не удалось сохранить данные в облако.');
-        }
-    }
-
-    async function loadFromCloud() {
-        try {
-            const response = await fetch(`${config.endpoint}/${config.bucketName}/diary-data.json`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `AWS ${config.accessKeyId}:${config.secretAccessKey}`,
-                    'Host': `${config.bucketName}.storage.yandexcloud.net`
-                }
-            });
-            if (response.status === 404) {
-                console.log('ℹ️ Данных в облаке пока нет.');
-                return null;
-            }
-            if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
-            const data = await response.json();
-            console.log('✅ Данные загружены из облака');
-            return data;
-        } catch (error) {
-            console.error('❌ Ошибка:', error);
-            alert('Не удалось загрузить данные из облака.');
-            return null;
-        }
-    }
-
     // ===== Загрузка сохранённых записей =====
-    const cloudData = await loadFromCloud();
+    // Сначала пробуем загрузить с Яндекс.Диска
+    const diskData = await loadFromDisk();
     let notes = [];
 
-    if (cloudData) {
-        notes = cloudData;
+    if (diskData) {
+        notes = diskData;
         notes.forEach(note => addNewNote(note));
+        // Сохраняем в localStorage для быстрого доступа
+        localStorage.setItem('notes', JSON.stringify(notes));
     } else {
+        // Если на Диске нет данных, загружаем из localStorage
         const localNotes = JSON.parse(localStorage.getItem('notes'));
         if (localNotes) {
             notes = localNotes;
             notes.forEach(note => addNewNote(note));
-            await saveToCloud(notes);
+            // Сохраняем на Диск
+            await saveToDisk(notes);
         }
     }
 
     prepareExistingTables();
     addBtn.addEventListener('click', () => addNewNote());
 
+    // ===== Добавление новой записи =====
     function addNewNote(tableHtml = '') {
         const note = document.createElement('div');
         note.classList.add('note');
@@ -601,12 +560,15 @@ async function initializeApp() {
         document.body.appendChild(note);
     }
 
+    // ===== Функция обновления данных =====
     async function updateLS() {
         const notes = [];
         document.querySelectorAll('.note .main table').forEach(table => {
             notes.push(table.outerHTML);
         });
-        await saveToCloud(notes);
+        // Сохраняем на Яндекс.Диск
+        await saveToDisk(notes);
+        // Сохраняем в localStorage как резервную копию
         localStorage.setItem('notes', JSON.stringify(notes));
     }
 }
