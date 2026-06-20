@@ -34,6 +34,7 @@ async function saveToDisk(data) {
 
 async function loadFromDisk() {
     try {
+        // Сначала получаем ссылку на скачивание
         const response = await fetch(`https://cloud-api.yandex.net/v1/disk/resources/download?path=${FILE_PATH}`, {
             method: 'GET',
             headers: { 'Authorization': `OAuth ${ACCESS_TOKEN}` }
@@ -45,7 +46,10 @@ async function loadFromDisk() {
         }
         if (!response.ok) throw new Error('Ошибка получения ссылки на загрузку: ' + response.status);
         const downloadData = await response.json();
-        const fileResponse = await fetch(downloadData.href);
+        
+        // Используем прокси для обхода CORS
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const fileResponse = await fetch(proxyUrl + downloadData.href);
         if (!fileResponse.ok) throw new Error('Ошибка загрузки файла: ' + fileResponse.status);
         const data = await fileResponse.json();
         console.log('✅ Данные загружены с Яндекс.Диска');
@@ -58,7 +62,7 @@ async function loadFromDisk() {
 }
 
 // ============================================================
-//  БЛОК АВТОРИЗАЦИИ
+//  БЛОК АВТОРИЗАЦИИ (без изменений)
 // ============================================================
 (function() {
     const loginContainer = document.getElementById('login-container');
@@ -358,6 +362,7 @@ async function initializeApp() {
     }
 
     // ===== Загрузка сохранённых записей =====
+    // Сначала пробуем загрузить с Яндекс.Диска
     const diskData = await loadFromDisk();
     let notes = [];
 
@@ -567,41 +572,32 @@ async function initializeApp() {
             notes.push(table.outerHTML);
         });
         localStorage.setItem('notes', JSON.stringify(notes));
+        // Автоматически сохраняем на Диск, если есть данные
         if (notes.length > 0) {
             await saveToDisk(notes);
-        } else {
-            console.log('⚠️ Нет данных для сохранения на Диск.');
         }
     }
 
     // ===== Обработчики кнопок синхронизации =====
-    const saveBtn = document.getElementById('save-disk-btn');
-    const loadBtn = document.getElementById('load-disk-btn');
-
-    if (saveBtn) {
-        saveBtn.addEventListener('click', async function() {
-            const notes = [];
-            document.querySelectorAll('.note .main table').forEach(table => {
-                notes.push(table.outerHTML);
-            });
-            if (notes.length === 0) {
-                alert('Нет данных для сохранения.');
-                return;
-            }
-            await saveToDisk(notes);
+    document.getElementById('save-disk-btn').addEventListener('click', async function() {
+        const notes = [];
+        document.querySelectorAll('.note .main table').forEach(table => {
+            notes.push(table.outerHTML);
         });
-    }
+        if (notes.length === 0) {
+            alert('Нет данных для сохранения.');
+            return;
+        }
+        await saveToDisk(notes);
+    });
 
-    if (loadBtn) {
-        loadBtn.addEventListener('click', async function() {
-            const data = await loadFromDisk();
-            if (data) {
-                // Очищаем старые записи
-                document.querySelectorAll('.note').forEach(el => el.remove());
-                data.forEach(note => addNewNote(note));
-                localStorage.setItem('notes', JSON.stringify(data));
-                alert('✅ Данные загружены с Диска!');
-            }
-        });
-    }
+    document.getElementById('load-disk-btn').addEventListener('click', async function() {
+        const data = await loadFromDisk();
+        if (data) {
+            document.querySelectorAll('.note').forEach(el => el.remove());
+            data.forEach(note => addNewNote(note));
+            localStorage.setItem('notes', JSON.stringify(data));
+            alert('✅ Данные загружены с Диска!');
+        }
+    });
 }
