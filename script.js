@@ -1,4 +1,69 @@
 // ============================================================
+//  ПРОВЕРКА: загружен ли config.js
+// ============================================================
+if (typeof YC_CONFIG === 'undefined') {
+    alert('Ошибка: файл config.js не загружен! Убедитесь, что он лежит в той же папке и подключён в index.html.');
+    throw new Error('YC_CONFIG не определён');
+}
+
+// ============================================================
+//  ФУНКЦИИ ДЛЯ РАБОТЫ С ОБЛАКОМ (используют YC_CONFIG)
+// ============================================================
+
+// Сохранение данных в облако
+async function saveToCloud(data) {
+    try {
+        const response = await fetch(`${YC_CONFIG.endpoint}/${YC_CONFIG.bucketName}/diary-data.json`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `AWS ${YC_CONFIG.accessKeyId}:${YC_CONFIG.secretAccessKey}`,
+                'Content-Type': 'application/json',
+                'Host': `${YC_CONFIG.bucketName}.storage.yandexcloud.net`
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка сохранения: ${response.status}`);
+        }
+        console.log('✅ Данные успешно сохранены в облако');
+    } catch (error) {
+        console.error('❌ Ошибка при сохранении в облако:', error);
+        alert('Не удалось сохранить данные в облако. Проверьте подключение к интернету.');
+    }
+}
+
+// Загрузка данных из облака
+async function loadFromCloud() {
+    try {
+        const response = await fetch(`${YC_CONFIG.endpoint}/${YC_CONFIG.bucketName}/diary-data.json`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `AWS ${YC_CONFIG.accessKeyId}:${YC_CONFIG.secretAccessKey}`,
+                'Host': `${YC_CONFIG.bucketName}.storage.yandexcloud.net`
+            }
+        });
+
+        if (response.status === 404) {
+            console.log('ℹ️ Данных в облаке пока нет. Начинаем с пустого дневника.');
+            return null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Данные успешно загружены из облака');
+        return data;
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке из облака:', error);
+        alert('Не удалось загрузить данные из облака. Проверьте подключение к интернету.');
+        return null;
+    }
+}
+
+// ============================================================
 //  БЛОК АВТОРИЗАЦИИ (всегда выполняется первым)
 // ============================================================
 (function() {
@@ -8,10 +73,8 @@
     const loginBtn = document.getElementById('login-btn');
     const errorMsg = document.getElementById('login-error');
 
-    // Проверяем, установлен ли уже пароль
     const storedHash = localStorage.getItem('app_password_hash');
     if (!storedHash) {
-        // Первый запуск – просим установить пароль
         passwordInput.placeholder = 'Придумайте пароль';
         loginBtn.textContent = 'Установить пароль';
     } else {
@@ -19,7 +82,6 @@
         loginBtn.textContent = 'Войти';
     }
 
-    // Простая хеш-функция (не для криптографии, а для хранения)
     function hashPassword(password) {
         let hash = 0;
         for (let i = 0; i < password.length; i++) {
@@ -41,17 +103,14 @@
         const hashed = hashPassword(inputPassword);
 
         if (!storedHash) {
-            // Установка пароля
             localStorage.setItem('app_password_hash', hashed);
             alert('Пароль установлен! Запомните его: ' + inputPassword);
-            // Показываем приложение
             loginContainer.style.display = 'none';
             appContent.style.display = 'block';
             if (typeof initializeApp === 'function') initializeApp();
             return;
         }
 
-        // Проверка пароля
         if (hashed === storedHash) {
             loginContainer.style.display = 'none';
             appContent.style.display = 'block';
@@ -72,10 +131,9 @@
 })();
 
 // ============================================================
-//  ОСНОВНОЙ КОД ПРИЛОЖЕНИЯ (внутри функции initializeApp)
+//  ОСНОВНОЙ КОД ПРИЛОЖЕНИЯ
 // ============================================================
-function initializeApp() {
-    // ===== Ваш существующий код (скопирован из вашего script.js) =====
+async function initializeApp() {
     const addBtn = document.getElementById('add');
 
     // ===== Установка сезонной цветовой темы =====
@@ -309,12 +367,26 @@ function initializeApp() {
     }
 
     // ===== Загрузка сохранённых записей =====
-    const notes = JSON.parse(localStorage.getItem('notes'));
-    if (notes) {
-        notes.forEach(note => addNewNote(note));
-    }
-    prepareExistingTables();
+    // Сначала пробуем загрузить данные из облака
+    const cloudData = await loadFromCloud();
+    let notes = [];
 
+    if (cloudData) {
+        // Если данные в облаке есть, используем их
+        notes = cloudData;
+        notes.forEach(note => addNewNote(note));
+    } else {
+        // Если данных в облаке нет, пробуем загрузить из localStorage (для переноса старых данных)
+        const localNotes = JSON.parse(localStorage.getItem('notes'));
+        if (localNotes) {
+            notes = localNotes;
+            notes.forEach(note => addNewNote(note));
+            // И сразу сохраняем их в облако, чтобы они там появились
+            await saveToCloud(notes);
+        }
+    }
+    
+    prepareExistingTables();
     addBtn.addEventListener('click', () => addNewNote());
 
     function addNewNote(tableHtml = '') {
@@ -341,9 +413,9 @@ function initializeApp() {
                         <th contenteditable="true">Дата</th>
                         <th contenteditable="true">Время</th>
                         <th contenteditable="true">Вид</th>
-                        <th contenteditable="true" class="project-extra">Имя</th>
+                        <th contenteditable="true" class="project-extra">Наименование проекта</th>
                         <th contenteditable="true" class="sport-extra">Вид спорта</th>
-                        <th contenteditable="true">Работа</th>
+                        <th contenteditable="true">Результат</th>
                         <th contenteditable="true">Оценка</th>
                     </tr>
                     <tr>
@@ -500,11 +572,15 @@ function initializeApp() {
         document.body.appendChild(note);
     }
 
-    function updateLS() {
+    // ===== Функция обновления данных =====
+    async function updateLS() {
         const notes = [];
         document.querySelectorAll('.note .main table').forEach(table => {
             notes.push(table.outerHTML);
         });
+        // Сохраняем в облако
+        await saveToCloud(notes);
+        // Дополнительно сохраняем в localStorage как резервную копию
         localStorage.setItem('notes', JSON.stringify(notes));
     }
 }
