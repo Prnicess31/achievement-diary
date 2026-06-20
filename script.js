@@ -58,12 +58,67 @@ async function loadFromDisk() {
 }
 
 // ============================================================
-//  БЛОК АВТОРИЗАЦИИ (без изменений, оставлен как был)
+//  БЛОК АВТОРИЗАЦИИ
 // ============================================================
 (function() {
-    // ... (ваш существующий код авторизации, он остаётся без изменений)
-    // Я не буду дублировать его здесь, чтобы не перегружать ответ,
-    // но вы должны скопировать его из вашего текущего файла.
+    const loginContainer = document.getElementById('login-container');
+    const appContent = document.getElementById('app-content');
+    const passwordInput = document.getElementById('password-input');
+    const loginBtn = document.getElementById('login-btn');
+    const errorMsg = document.getElementById('login-error');
+
+    const storedHash = localStorage.getItem('app_password_hash');
+    if (!storedHash) {
+        passwordInput.placeholder = 'Придумайте пароль';
+        loginBtn.textContent = 'Установить пароль';
+    } else {
+        passwordInput.placeholder = 'Введите пароль';
+        loginBtn.textContent = 'Войти';
+    }
+
+    function hashPassword(password) {
+        let hash = 0;
+        for (let i = 0; i < password.length; i++) {
+            const char = password.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash;
+        }
+        return hash.toString(16);
+    }
+
+    function login() {
+        const inputPassword = passwordInput.value.trim();
+        if (!inputPassword) {
+            errorMsg.textContent = 'Введите пароль';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        const hashed = hashPassword(inputPassword);
+        if (!storedHash) {
+            localStorage.setItem('app_password_hash', hashed);
+            alert('Пароль установлен! Запомните его: ' + inputPassword);
+            loginContainer.style.display = 'none';
+            appContent.style.display = 'block';
+            if (typeof initializeApp === 'function') initializeApp();
+            return;
+        }
+        if (hashed === storedHash) {
+            loginContainer.style.display = 'none';
+            appContent.style.display = 'block';
+            errorMsg.style.display = 'none';
+            if (typeof initializeApp === 'function') initializeApp();
+        } else {
+            errorMsg.textContent = 'Неверный пароль!';
+            errorMsg.style.display = 'block';
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+
+    loginBtn.addEventListener('click', login);
+    passwordInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') login();
+    });
 })();
 
 // ============================================================
@@ -74,32 +129,235 @@ async function initializeApp() {
 
     // ===== Установка сезонной цветовой темы =====
     function setSeasonColors() {
-        // ... (ваш существующий код, без изменений)
+        const now = new Date();
+        const month = now.getMonth();
+        let primary, hover;
+        if (month >= 11 || month <= 1) {
+            primary = '#3498db';
+            hover = '#2980b9';
+        } else if (month >= 2 && month <= 4) {
+            primary = '#e84393';
+            hover = '#d63384';
+        } else if (month >= 5 && month <= 7) {
+            primary = '#2ecc71';
+            hover = '#27ae60';
+        } else {
+            primary = '#f1c40f';
+            hover = '#f39c12';
+        }
+        document.documentElement.style.setProperty('--primary', primary);
+        document.documentElement.style.setProperty('--primary-hover', hover);
     }
     setSeasonColors();
 
     // ===== Функция применения фильтра =====
     function applyFilter(table, category) {
-        // ... (ваш существующий код, без изменений)
+        const rows = table.querySelectorAll('tr');
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 3) {
+                const activityCell = cells[2];
+                const cellValue = activityCell.textContent.trim();
+                if (category === 'all' || cellValue === category) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+        const note = table.closest('.note');
+        if (!note) return;
+        note.classList.remove('show-project-column', 'show-sport-column');
+        if (category === 'проект') {
+            note.classList.add('show-project-column');
+        } else if (category === 'спорт') {
+            note.classList.add('show-sport-column');
+        }
     }
 
     // ===== 1. Инициализация ячеек с датой =====
     function initDateCells(table) {
-        // ... (ваш существующий код, без изменений)
+        if (!table._dateHandler) {
+            table.addEventListener('click', function(e) {
+                const cell = e.target.closest('[data-date="true"]');
+                if (!cell) return;
+                if (cell.querySelector('input[type="date"]')) return;
+                const currentText = cell.textContent.trim();
+                const input = document.createElement('input');
+                input.type = 'date';
+                let dateValue = '';
+                if (currentText) {
+                    const parts = currentText.split(/[.\-\/]/);
+                    if (parts.length === 3) {
+                        let day = parseInt(parts[0]);
+                        let month = parseInt(parts[1]) - 1;
+                        let year = parseInt(parts[2]);
+                        if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                            const d = new Date(year, month, day);
+                            if (!isNaN(d)) {
+                                dateValue = d.toISOString().split('T')[0];
+                            }
+                        }
+                    }
+                }
+                input.value = dateValue;
+                cell.innerHTML = '';
+                cell.appendChild(input);
+                input.focus();
+                if (input.showPicker) input.showPicker();
+                input.addEventListener('change', function() {
+                    const val = this.value;
+                    if (val) {
+                        const d = new Date(val + 'T00:00:00');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        cell.textContent = `${day}.${month}.${year}`;
+                    } else {
+                        cell.textContent = '';
+                    }
+                    updateLS();
+                });
+                input.addEventListener('blur', function() {
+                    const val = this.value;
+                    if (val) {
+                        const d = new Date(val + 'T00:00:00');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const year = d.getFullYear();
+                        cell.textContent = `${day}.${month}.${year}`;
+                    } else {
+                        cell.textContent = '';
+                    }
+                    updateLS();
+                });
+            });
+            table._dateHandler = true;
+        }
     }
 
     // ===== 2. Инициализация ячеек с видом деятельности =====
     function initActivityCells(table) {
-        // ... (ваш существующий код, без изменений)
+        if (!table._activityHandler) {
+            table.addEventListener('click', function(e) {
+                const cell = e.target.closest('[data-activity="true"]');
+                if (!cell) return;
+                if (cell.querySelector('select')) return;
+                const currentText = cell.textContent.trim();
+                const select = document.createElement('select');
+                const options = ['', 'проект', 'спорт', 'бытовые дела', 'документы'];
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = opt || '(выберите)';
+                    if (opt === currentText) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+                cell.innerHTML = '';
+                cell.appendChild(select);
+                select.focus();
+                function saveActivity() {
+                    const val = select.value;
+                    cell.textContent = val;
+                    const table = cell.closest('table');
+                    const filterSelect = table.closest('.note').querySelector('.activity-filter');
+                    if (filterSelect) {
+                        applyFilter(table, filterSelect.value);
+                    }
+                    updateLS();
+                }
+                select.addEventListener('change', saveActivity);
+                select.addEventListener('blur', function() {
+                    if (!select.value) {
+                        cell.textContent = '';
+                        const table = cell.closest('table');
+                        const filterSelect = table.closest('.note').querySelector('.activity-filter');
+                        if (filterSelect) {
+                            applyFilter(table, filterSelect.value);
+                        }
+                        updateLS();
+                    } else {
+                        saveActivity();
+                    }
+                });
+            });
+            table._activityHandler = true;
+        }
     }
 
     // ===== Подготовка существующих таблиц =====
     function prepareExistingTables() {
-        // ... (ваш существующий код, без изменений)
+        document.querySelectorAll('.note .main table').forEach(table => {
+            const rows = table.querySelectorAll('tr');
+            if (rows.length === 0) return;
+            const headerRow = rows[0];
+            const ths = headerRow.querySelectorAll('th');
+            const neededCols = 7;
+            if (ths.length < neededCols) {
+                const insertIndex = 4;
+                const newTh = document.createElement('th');
+                newTh.contentEditable = true;
+                newTh.textContent = 'Вид спорта';
+                newTh.className = 'sport-extra';
+                headerRow.insertBefore(newTh, headerRow.children[insertIndex] || null);
+                for (let i = 1; i < rows.length; i++) {
+                    const td = document.createElement('td');
+                    td.contentEditable = true;
+                    td.className = 'sport-extra';
+                    rows[i].insertBefore(td, rows[i].children[insertIndex] || null);
+                }
+            } else {
+                if (ths.length > 3) ths[3].classList.add('project-extra');
+                if (ths.length > 4) ths[4].classList.add('sport-extra');
+                for (let i = 1; i < rows.length; i++) {
+                    const cells = rows[i].querySelectorAll('td');
+                    if (cells.length > 3) cells[3].classList.add('project-extra');
+                    if (cells.length > 4) cells[4].classList.add('sport-extra');
+                }
+            }
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                if (row === headerRow) {
+                    cells.forEach(cell => {
+                        cell.contentEditable = true;
+                        const oldBtn = cell.querySelector('button');
+                        if (oldBtn) oldBtn.remove();
+                    });
+                } else {
+                    const tds = row.querySelectorAll('td');
+                    if (tds.length >= 3) {
+                        const dateCell = tds[0];
+                        dateCell.setAttribute('data-date', 'true');
+                        dateCell.removeAttribute('contenteditable');
+                        const timeCell = tds[1];
+                        timeCell.setAttribute('contenteditable', 'true');
+                        timeCell.removeAttribute('data-time');
+                        const activityCell = tds[2];
+                        activityCell.setAttribute('data-activity', 'true');
+                        activityCell.removeAttribute('contenteditable');
+                        if (tds.length > 3) tds[3].setAttribute('contenteditable', 'true');
+                        if (tds.length > 4) tds[4].setAttribute('contenteditable', 'true');
+                        for (let i = 5; i < tds.length; i++) {
+                            tds[i].setAttribute('contenteditable', 'true');
+                        }
+                    }
+                }
+            });
+            initDateCells(table);
+            initActivityCells(table);
+            const filterSelect = table.closest('.note').querySelector('.activity-filter');
+            if (filterSelect) {
+                applyFilter(table, filterSelect.value);
+            } else {
+                applyFilter(table, 'all');
+            }
+        });
     }
 
     // ===== Загрузка сохранённых записей =====
-    // Сначала пробуем загрузить с Яндекс.Диска
     const diskData = await loadFromDisk();
     let notes = [];
 
@@ -112,7 +370,6 @@ async function initializeApp() {
         if (localNotes) {
             notes = localNotes;
             notes.forEach(note => addNewNote(note));
-            // Не сохраняем автоматически на Диск, чтобы пользователь сам решил
         }
     }
 
@@ -121,7 +378,186 @@ async function initializeApp() {
 
     // ===== Добавление новой записи =====
     function addNewNote(tableHtml = '') {
-        // ... (ваш существующий код, без изменений)
+        const note = document.createElement('div');
+        note.classList.add('note');
+
+        const filterHtml = `
+            <div class="filter-container" style="margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 0.7rem; font-weight: 600; color: #555;">Фильтр:</label>
+                <select class="activity-filter" style="font-size: 0.7rem; padding: 2px 6px; border: 1px solid #ccc; border-radius: 3px; background: #fff;">
+                    <option value="all">Все</option>
+                    <option value="проект">проект</option>
+                    <option value="спорт">спорт</option>
+                    <option value="бытовые дела">бытовые дела</option>
+                    <option value="документы">документы</option>
+                </select>
+            </div>
+        `;
+
+        if (!tableHtml) {
+            tableHtml = `
+                <table border="1" cellpadding="5" style="border-collapse: collapse; width: 100%; font-size: 0.8rem;">
+                    <tr>
+                        <th contenteditable="true">Дата</th>
+                        <th contenteditable="true">Время</th>
+                        <th contenteditable="true">Вид</th>
+                        <th contenteditable="true" class="project-extra">Наименование проекта</th>
+                        <th contenteditable="true" class="sport-extra">Вид спорта</th>
+                        <th contenteditable="true">Результат</th>
+                        <th contenteditable="true">Оценка</th>
+                    </tr>
+                    <tr>
+                        <td data-date="true"></td>
+                        <td contenteditable="true"></td>
+                        <td data-activity="true"></td>
+                        <td contenteditable="true" class="project-extra"></td>
+                        <td contenteditable="true" class="sport-extra"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                </table>
+            `;
+        }
+
+        note.innerHTML = `
+            <div class="tools">
+                <button class="delete"><i class="fas fa-trash-can"></i></button>
+            </div>
+            <div class="main">
+                ${filterHtml}
+                ${tableHtml}
+                <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+                    <button class="row-action-btn add-row"><i class="fas fa-plus"></i> Добавить строку</button>
+                    <button class="row-action-btn delete-row"><i class="fas fa-minus"></i> Удалить строку</button>
+                    <button class="row-action-btn clear-row"><i class="fas fa-eraser"></i> Очистить строку</button>
+                </div>
+            </div>
+        `;
+
+        const main = note.querySelector('.main');
+        const deleteBtn = note.querySelector('.delete');
+        const addRowBtn = note.querySelector('.add-row');
+        const deleteRowBtn = note.querySelector('.delete-row');
+        const clearRowBtn = note.querySelector('.clear-row');
+        const table = main.querySelector('table');
+        const filterSelect = note.querySelector('.activity-filter');
+
+        if (table) {
+            const headerRow = table.querySelector('tr');
+            if (headerRow) {
+                const ths = headerRow.querySelectorAll('th');
+                if (ths.length > 3) ths[3].classList.add('project-extra');
+                if (ths.length > 4) ths[4].classList.add('sport-extra');
+                ths.forEach(th => {
+                    th.contentEditable = true;
+                    const oldBtn = th.querySelector('button');
+                    if (oldBtn) oldBtn.remove();
+                });
+            }
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 3) {
+                    const dateCell = cells[0];
+                    dateCell.setAttribute('data-date', 'true');
+                    dateCell.removeAttribute('contenteditable');
+                    const timeCell = cells[1];
+                    timeCell.setAttribute('contenteditable', 'true');
+                    timeCell.removeAttribute('data-time');
+                    const activityCell = cells[2];
+                    activityCell.setAttribute('data-activity', 'true');
+                    activityCell.removeAttribute('contenteditable');
+                    if (cells.length > 3) {
+                        cells[3].setAttribute('contenteditable', 'true');
+                        cells[3].classList.add('project-extra');
+                    }
+                    if (cells.length > 4) {
+                        cells[4].setAttribute('contenteditable', 'true');
+                        cells[4].classList.add('sport-extra');
+                    }
+                    for (let i = 5; i < cells.length; i++) {
+                        cells[i].setAttribute('contenteditable', 'true');
+                    }
+                }
+            });
+            initDateCells(table);
+            initActivityCells(table);
+            applyFilter(table, 'all');
+            filterSelect.addEventListener('change', function() {
+                applyFilter(table, this.value);
+            });
+        }
+
+        addRowBtn.addEventListener('click', function() {
+            const table = main.querySelector('table');
+            if (!table) return;
+            const headerRow = table.querySelector('tr');
+            if (!headerRow) return;
+            const colCount = headerRow.cells.length;
+            const tr = document.createElement('tr');
+            for (let i = 0; i < colCount; i++) {
+                const td = document.createElement('td');
+                if (i === 0) {
+                    td.setAttribute('data-date', 'true');
+                } else if (i === 2) {
+                    td.setAttribute('data-activity', 'true');
+                } else if (i === 3) {
+                    td.setAttribute('contenteditable', 'true');
+                    td.classList.add('project-extra');
+                } else if (i === 4) {
+                    td.setAttribute('contenteditable', 'true');
+                    td.classList.add('sport-extra');
+                } else {
+                    td.setAttribute('contenteditable', 'true');
+                }
+                tr.appendChild(td);
+            }
+            table.appendChild(tr);
+            applyFilter(table, filterSelect.value);
+            updateLS();
+            tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        deleteRowBtn.addEventListener('click', function() {
+            const table = main.querySelector('table');
+            if (!table) return;
+            const rows = table.querySelectorAll('tr');
+            if (rows.length <= 1) return;
+            const lastRow = rows[rows.length - 1];
+            lastRow.remove();
+            applyFilter(table, filterSelect.value);
+            updateLS();
+        });
+
+        clearRowBtn.addEventListener('click', function() {
+            const table = main.querySelector('table');
+            if (!table) return;
+            const rows = table.querySelectorAll('tr');
+            if (rows.length <= 1) return;
+            const lastRow = rows[rows.length - 1];
+            const cells = lastRow.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.textContent = '';
+            });
+            updateLS();
+        });
+
+        deleteBtn.addEventListener('click', () => {
+            note.remove();
+            updateLS();
+        });
+
+        if (table) {
+            table.addEventListener('input', function(e) {
+                if (e.target.tagName === 'TH' || e.target.tagName === 'TD') {
+                    updateLS();
+                }
+            });
+            table.addEventListener('blur', function() {
+                updateLS();
+            }, true);
+        }
+        document.body.appendChild(note);
     }
 
     // ===== Функция обновления данных =====
@@ -131,7 +567,6 @@ async function initializeApp() {
             notes.push(table.outerHTML);
         });
         localStorage.setItem('notes', JSON.stringify(notes));
-        // Сохраняем на Диск только если есть данные
         if (notes.length > 0) {
             await saveToDisk(notes);
         } else {
@@ -139,15 +574,11 @@ async function initializeApp() {
         }
     }
 
-    // ===== Добавляем кнопки ручного управления синхронизацией =====
-    function addSyncButtons() {
-        const container = document.createElement('div');
-        container.style.cssText = 'position: fixed; bottom: 70px; right: 20px; display: flex; gap: 10px; z-index: 100; flex-wrap: wrap; justify-content: flex-end;';
+    // ===== Обработчики кнопок синхронизации =====
+    const saveBtn = document.getElementById('save-disk-btn');
+    const loadBtn = document.getElementById('load-disk-btn');
 
-        const saveBtn = document.createElement('button');
-        saveBtn.innerHTML = '💾 Сохранить на Диск';
-        saveBtn.className = 'row-action-btn';
-        saveBtn.style.cssText = 'padding: 8px 16px; font-size: 0.8rem;';
+    if (saveBtn) {
         saveBtn.addEventListener('click', async function() {
             const notes = [];
             document.querySelectorAll('.note .main table').forEach(table => {
@@ -159,26 +590,18 @@ async function initializeApp() {
             }
             await saveToDisk(notes);
         });
+    }
 
-        const loadBtn = document.createElement('button');
-        loadBtn.innerHTML = '📥 Загрузить с Диска';
-        loadBtn.className = 'row-action-btn';
-        loadBtn.style.cssText = 'padding: 8px 16px; font-size: 0.8rem;';
+    if (loadBtn) {
         loadBtn.addEventListener('click', async function() {
             const data = await loadFromDisk();
             if (data) {
-                // Очищаем существующие записи
+                // Очищаем старые записи
                 document.querySelectorAll('.note').forEach(el => el.remove());
                 data.forEach(note => addNewNote(note));
                 localStorage.setItem('notes', JSON.stringify(data));
                 alert('✅ Данные загружены с Диска!');
             }
         });
-
-        container.appendChild(saveBtn);
-        container.appendChild(loadBtn);
-        document.body.appendChild(container);
     }
-
-    addSyncButtons();
 }
